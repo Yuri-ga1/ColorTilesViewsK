@@ -18,6 +18,8 @@ class MainActivity : AppCompatActivity() {
     private var FIELD_SIZE: Int = 4
     private var victoryColorTilesCount: Int = FIELD_SIZE*FIELD_SIZE
 
+    private var gameScores: Int = 0
+
     private lateinit var mainLinearLayout: LinearLayout
 
     private lateinit var lampOn: Drawable
@@ -106,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun onClick(v: View) {
+        gameScores -= 1
         val coord = getCoordFromString(v.getTag().toString())
         changeColor(v)
 
@@ -120,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         var countColorTiles: Int = getColorTiles()
         Log.i("countColorTiles", countColorTiles.toString())
         if (countColorTiles == 0 || countColorTiles == victoryColorTilesCount){
+            gameScores += 50 * (FIELD_SIZE/2)
             showVictoryDialog()
         }
     }
@@ -148,7 +152,7 @@ class MainActivity : AppCompatActivity() {
     private fun showVictoryDialog() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Congratulations!")
-        builder.setMessage("You won! Do you want to proceed to the next level?")
+        builder.setMessage("You won! Your scores is $gameScores. Do you want to proceed to the next level?")
 
         builder.setPositiveButton("Next Level") { dialog, which ->
             nextLevel()
