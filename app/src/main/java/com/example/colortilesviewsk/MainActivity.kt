@@ -1,12 +1,10 @@
 package com.example.colortilesviewsk
 
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -80,7 +78,6 @@ class MainActivity : AppCompatActivity() {
             tiles.add(row)
             mainLinearLayout.addView(rowLinearLayout)
         }
-        Toast.makeText(this, tiles.size.toString(), Toast.LENGTH_SHORT).show()
     }
 
     fun initTilesColor() {
