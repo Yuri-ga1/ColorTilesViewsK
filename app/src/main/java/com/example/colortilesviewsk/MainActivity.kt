@@ -1,14 +1,15 @@
 package com.example.colortilesviewsk
 
-import android.R.attr.x
-import android.R.attr.y
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import java.io.Console
+import androidx.core.content.ContextCompat
 import kotlin.random.Random
 
 
@@ -16,20 +17,80 @@ import kotlin.random.Random
 data class Coord(val x: Int, val y: Int)
 class MainActivity : AppCompatActivity() {
 
-    lateinit var tiles: Array<Array<View>>
+    private var FIELD_SIZE: Int = 4
+    private var victoryColorTilesCount: Int = FIELD_SIZE*FIELD_SIZE
+
+    private lateinit var mainLinearLayout: LinearLayout
+
+    private lateinit var lampOn: Drawable
+    private lateinit var lampOff: Drawable
+
+    private lateinit var tiles: ArrayList<ArrayList<View>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        //tiles = Array(4) { Array(4){View(this)} }
-        tiles = arrayOf(
-            arrayOf(findViewById(R.id.t00), findViewById(R.id.t01), findViewById(R.id.t02), findViewById(R.id.t03)),
-            arrayOf(findViewById(R.id.t10), findViewById(R.id.t11), findViewById(R.id.t12), findViewById(R.id.t13)),
-            arrayOf(findViewById(R.id.t20), findViewById(R.id.t21), findViewById(R.id.t22), findViewById(R.id.t23)),
-            arrayOf(findViewById(R.id.t30), findViewById(R.id.t31), findViewById(R.id.t32), findViewById(R.id.t33)),
-        )
+
+        mainLinearLayout = findViewById<LinearLayout>(R.id.mainLinearLayout)
+
+        lampOn = ContextCompat.getDrawable(this, R.drawable.lamp_on)!!
+        lampOff = ContextCompat.getDrawable(this, R.drawable.lamp_off)!!
+
         initField()
-        // еще 15 строк тут, id у плиток нужно по образцу внести в разметку
+        initTilesColor()
+    }
+
+
+    private fun initField(){
+        tiles = ArrayList()
+
+        for (i in 0 until FIELD_SIZE) {
+            val rowLinearLayout = LinearLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+                orientation = LinearLayout.HORIZONTAL
+            }
+
+            val row = ArrayList<View>()
+            for (j in 0 until FIELD_SIZE) {
+                val view = View(this).apply {
+                    id = View.generateViewId()
+                    tag = "$i$j"
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        1f
+                    ).apply {
+                        width = 0
+                        height = LinearLayout.LayoutParams.MATCH_PARENT
+                        weight = 1f
+                    }
+                    val power = Random.nextInt(0, 2)
+                    setBackground(if (power == 0) lampOff else lampOn)
+                    setOnClickListener {
+                        onClick(it)
+                    }
+                }
+                rowLinearLayout.addView(view)
+                row.add(view)
+            }
+            tiles.add(row)
+            mainLinearLayout.addView(rowLinearLayout)
+        }
+        Toast.makeText(this, tiles.size.toString(), Toast.LENGTH_SHORT).show()
+    }
+
+    fun initTilesColor() {
+        for (i in 0 until FIELD_SIZE){
+            for (j in 0 until FIELD_SIZE){
+                if (Random.nextBoolean()){
+                    changeColor(tiles[i][j])
+                }
+            }
+        }
     }
 
     fun getCoordFromString(s: String): Coord {
@@ -39,13 +100,11 @@ class MainActivity : AppCompatActivity() {
         return Coord(x,y) // вернуть полученные координаты
     }
     fun changeColor(view: View) {
-        val brightColor = resources.getColor(R.color.bright)
-        val darkColor = resources.getColor(R.color.dark)
-        val drawable = view.background as ColorDrawable
-        if (drawable.color == brightColor ) {
-            view.setBackgroundColor(darkColor)
+        val drawable = view.background as Drawable
+        if (drawable == lampOff ) {
+            view.setBackground(lampOn)
         } else {
-            view.setBackgroundColor(brightColor)
+            view.setBackground(lampOff)
         }
     }
 
@@ -53,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         val coord = getCoordFromString(v.getTag().toString())
         changeColor(v)
 
-        for (i in 0..3) {
+        for (i in 0 until FIELD_SIZE) {
             changeColor(tiles[coord.x][i])
             changeColor(tiles[i][coord.y])
         }
@@ -62,19 +121,18 @@ class MainActivity : AppCompatActivity() {
 
     fun checkVictory() {
         var countColorTiles: Int = getColorTiles()
-        if (countColorTiles == 0 || countColorTiles == 16){
-            Toast.makeText(this, "You won!", Toast.LENGTH_SHORT).show()
+        Log.i("countColorTiles", countColorTiles.toString())
+        if (countColorTiles == 0 || countColorTiles == victoryColorTilesCount){
+            showVictoryDialog()
         }
-        // TODO: проверка победы
     }
 
     fun getColorTiles(): Int {
-        val brightColor = resources.getColor(R.color.bright)
         var count: Int = 0
-        for (i in 0..3){
-            for (j in 0..3){
-                val drawable = tiles[i][j].background as ColorDrawable
-                if (drawable.color == brightColor){
+        tiles.forEach { row ->
+            row.forEach { tile ->
+                val drawable = tile.background as Drawable
+                if (drawable == lampOn) {
                     count++
                 }
             }
@@ -82,15 +140,30 @@ class MainActivity : AppCompatActivity() {
         return count
     }
 
-    fun initField() {
-        for (i in 0..3){
-            for (j in 0..3){
-                if (Random.nextBoolean()){
-                    changeColor(tiles[i][j])
-                }
-            }
-        }
+    private fun nextLevel(){
+        FIELD_SIZE +=2
+        victoryColorTilesCount = FIELD_SIZE*FIELD_SIZE
+        mainLinearLayout.removeAllViews()
+        initField()
+        initTilesColor()
     }
 
+    private fun showVictoryDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Congratulations!")
+        builder.setMessage("You won! Do you want to proceed to the next level?")
 
+        builder.setPositiveButton("Next Level") { dialog, which ->
+            nextLevel()
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("Cancel") { dialog, which ->
+            dialog.dismiss()
+            finish()
+        }
+
+        val dialog = builder.create()
+        dialog.show()
+    }
 }
